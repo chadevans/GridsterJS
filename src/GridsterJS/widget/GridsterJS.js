@@ -159,14 +159,21 @@
                 //LOOP OVER ALL ROWS
                 $(source).find('tr').each(function () {
                     col_count = 1;
-                    //LOW OVER EACH COLUMN IN THE ROW
+                    //LOOP OVER EACH COLUMN IN THE ROW
                     $(this).find('th,td').each(function (index, value) {
 
+                        var calc_col_size = col_sizex[col_count - 1];
+                        if ($(value).hasAttr('colspan')) {
+                            var colspan_value = $(value).attr('colspan');
+                            for (var i = 1; i < colspan_value; i++) {
+                                calc_col_size = calc_col_size + col_sizex[col_count - 1 + i];
+                            }
+                        }
                         var cell = $('<div></div>')
                             .appendTo(target)
                             .attr('data-row', tr_count)
                             .attr('data-col', col_count)
-                            .attr('data-sizex', col_sizex[col_count - 1])
+                            .attr('data-sizex', calc_col_size)
                             .attr('data-sizey', 1);
 
                         $(value.childNodes).appendTo(cell);
@@ -177,7 +184,7 @@
                 });
                 
                 // Remove the source table
-                $(source).remove();
+                //$(source).remove();
             },
 
             // Attach events to newly created nodes.
