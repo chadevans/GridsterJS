@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<widget id="GridsterJS.widget.GridsterJS" needsEntityContext="false" xmlns="http://www.mendix.com/widget/1.0/">
+    <name>GridsterJS</name>
+    <description>The description of this widget.</description>
+
+    <icon></icon>
+
+    <properties>
+        <property key="savelayoutmf" type="microflow" required="false" defaultValue="">
+            <caption>Save Layout Microflow</caption>
+            <category>Behavior</category>
+            <description>The microflow to execute when the layout changes.</description>
+            <returnType type="Boolean"></returnType>
+        </property>
+        <property key="dimensionwidth" type="integer" required="true" defaultValue="250">
+            <caption>Layout Cell Width</caption>
+            <category>Layout</category>
+            <description>The width dimension of the layout cell.</description>
+        </property>
+        <property key="dimensionheight" type="integer" required="true" defaultValue="250">
+            <caption>Layout Cell Height</caption>
+            <category>Layout</category>
+            <description>The height dimension of the layout cell.</description>
+        </property>
+        <property key="marginhorizonal" type="integer" required="true" defaultValue="5">
+            <caption>Cell Horizontal Margin</caption>
+            <category>Layout</category>
+            <description>The horizontal margin between the cells.</description>
+        </property>
+        <property key="marginvertical" type="integer" required="true" defaultValue="5">
+            <caption>Cell Vertical Margin</caption>
+            <category>Layout</category>
+            <description>The vertical margin between the cells.</description>
+        </property>
+    </properties>
+</widget>
+
