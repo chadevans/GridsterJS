@@ -61,9 +61,6 @@
                 // Create childnodes
                 this._createChildNodes();
 
-                // Setup events
-                this._setupEvents();
-
             },
 
             // DOJO.WidgetBase -> Startup is fired after the properties of the widget are set.
@@ -127,83 +124,84 @@
             // Create child nodes.
             _createChildNodes: function () {
 
-                // Assigning externally loaded library to internal variable inside function.
-                var $ = this.$, tr_count, col_count;
-
-                console.log('GridsterJS - createChildNodes events');
-
-                var source = $('.gridstertable');
-                var target = this.domNode;
+                var gridsterWidget = this;
+                var $ = this.$;
                 
-                // Find the width of the columns
-                var col_size = [], col_min = 0;
-                col_count = 0;
-                $(source).find('col').each(function (index, value) {
-                    col_size[col_count] = $(value).width();
-                    console.log('GridsterJS - col ' + col_count + ' of size ' + col_size[col_count]);
-                    col_count++;
-                });
-                
-                // Find the minimum width of the columns
-                col_min = Math.min.apply(null, col_size);
-                console.log('GridsterJS - col min ' + col_min);
-                
-                // Figure out the correct data-sizex to use for the relative size of the columns
-                var col_sizex = [];
-                $(col_size).each(function (index, value) {
-                    col_sizex[index] = Math.round(value / col_min);
-                    console.log('GridsterJS - col ' + index + ' of size ' + col_sizex[index]);
-                });
+                // setTimeout uses a different context for 'this',
+                // use the above variables for closure
+                setTimeout(function () {
 
-                tr_count = 1;
-                //LOOP OVER ALL ROWS
-                $(source).find('tr').each(function () {
-                    col_count = 1;
-                    //LOOP OVER EACH COLUMN IN THE ROW
-                    $(this).find('th,td').each(function (index, value) {
+                    // Assigning externally loaded library to internal variable inside function.
+                    var tr_count, col_count;
 
-                        var calc_col_size = col_sizex[col_count - 1];
-                        if ($(value).hasAttr('colspan')) {
-                            var colspan_value = $(value).attr('colspan');
-                            for (var i = 1; i < colspan_value; i++) {
-                                calc_col_size = calc_col_size + col_sizex[col_count - 1 + i];
-                            }
-                        }
-                        var cell = $('<div></div>')
-                            .appendTo(target)
-                            .attr('data-row', tr_count)
-                            .attr('data-col', col_count)
-                            .attr('data-sizex', calc_col_size)
-                            .attr('data-sizey', 1);
+                    console.log('GridsterJS - createChildNodes events');
 
-                        $(value.childNodes).appendTo(cell);
+                    var source = $('.gridstertable');
+                    var target = gridsterWidget.domNode;
 
+                    // Find the width of the columns
+                    var col_size = [],
+                        col_min = 0;
+                    col_count = 0;
+                    // loop over the columns, '>' prevents overreach of the selector to other sub-tables
+                    $(source).find(' > colgroup > col').each(function (index, value) {
+                        col_size[col_count] = $(value).width();
+                        //console.log('GridsterJS - col orig ' + col_count + ' of size ' + col_size[col_count]);
                         col_count++;
                     });
-                    tr_count++;
-                });
-                
-                // Remove the source table
-                //$(source).remove();
+
+                    // Find the minimum width of the columns
+                    col_min = Math.min.apply(null, col_size);
+                    //console.log('GridsterJS - col min ' + col_min);
+
+                    // Figure out the correct data-sizex to use for the relative size of the columns
+                    var col_sizex = [];
+                    $(col_size).each(function (index, value) {
+                        col_sizex[index] = Math.round(value / col_min);
+                        //console.log('GridsterJS - col modified ' + index + ' of size ' + col_sizex[index]);
+                    });
+
+                    tr_count = 1;
+                    //Loop over the rows, '>' prevents overreach of the selector to other sub-tables
+                    $(source).find(' > tbody > tr').each(function (index, value) {
+                        col_count = 1;
+                        //Loop over the columns, '>' prevents overreach of the selector to other sub-tables
+                        $(value).find(' > th , > td').each(function (index, value) {
+
+                            var calc_col_size = col_sizex[col_count - 1];
+                            if ($(value).hasAttr('colspan')) {
+                                var colspan_value = $(value).attr('colspan');
+                                for (var i = 1; i < colspan_value; i++) {
+                                    calc_col_size = calc_col_size + col_sizex[col_count - 1 + i];
+                                }
+                            }
+                            var cell = $('<div></div>')
+                                .appendTo(target)
+                                .attr('data-row', tr_count)
+                                .attr('data-col', col_count)
+                                .attr('data-sizex', calc_col_size)
+                                .attr('data-sizey', 1);
+
+                            $(value.childNodes).appendTo(cell);
+
+                            col_count++;
+                        });
+                        tr_count++;
+                    });
+
+                    // Remove the source table
+                    $(source).remove();
+
+                    // set up gridster for the node
+                    $(target).gridster({
+                        widget_base_dimensions: [gridsterWidget.dimensionwidth, gridsterWidget.dimensionheight],
+                        widget_margins: [gridsterWidget.marginhorizontal, gridsterWidget.marginvertical],
+                        widget_selector: 'div',
+                    }).data('gridster');
+
+                }, 100);
             },
 
-            // Attach events to newly created nodes.
-            _setupEvents: function () {
-
-                // Assigning externally loaded library to internal variable inside function.
-                var $ = this.$;
-
-                console.log('GridsterJS - setup events');
-
-                $(this.domNode).gridster({
-                    widget_base_dimensions: [this.dimensionwidth, this.dimensionheight],
-                    widget_margins: [this.marginhorizontal, this.marginvertical],
-                    widget_selector: 'div',
-                }).data('gridster');
-
-                console.log('GridsterJS - setup events done');
-
-            }
         });
     });
 
