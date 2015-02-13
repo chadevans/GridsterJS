@@ -117,6 +117,12 @@
     display: none !important;
 }
 
+.wgt-GridsterJS .preview-holder {
+    border: none;
+    background: grey;
+}
+
+
 /* Uncomment this if you set helper : "clone" in draggable options */
 /*.gridster .player {
   opacity:0;
