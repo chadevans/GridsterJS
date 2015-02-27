@@ -184,7 +184,8 @@
                                     .attr('data-row', tr_count)
                                     .attr('data-col', col_count)
                                     .attr('data-sizex', calc_col_size)
-                                    .attr('data-sizey', 1);
+                                    .attr('data-sizey', 1)
+                                    .addClass($(value).attr('class'));
                                 newcells.push(newcell);
 
                                 // Add all the child nodes to the new cell, which excludes the current cell (td)
