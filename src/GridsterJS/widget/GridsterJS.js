@@ -1,13 +1,12 @@
 /*jslint white:true, nomen: true, plusplus: true */
-/*global mx, mendix, require, console, define, module, logger, mxui */
+/*global mx, define, require, browser, devel, console, dojo, logger, setTimeout */
 /*mendix */
-/**
-
+/*
 	GridsterJS
 	========================
 
 	@file      : GridsterJS.js
-	@version   : 0.5
+	@version   : 0.7
 	@author    : Chad Evans
 	@date      : Fri, 30 Jan 2015 15:25:54 GMT
 	@copyright : Mendix Technology BV
@@ -16,320 +15,282 @@
 	Documentation
     ========================
 	Mendix widget for GridsterJS
-
 */
 
-(function () {
+// Required module list. Remove unnecessary modules, you can always get them back from the boilerplate.
+require({
+    packages: [{
+            name: 'jquery',
+            location: '../../widgets/GridsterJS/widget/lib',
+            main: 'jquery-1.11.2.min'
+        }]
+}, [
+    'dojo/_base/declare', 'mxui/widget/_WidgetBase', 'dijit/_TemplatedMixin',
+    'mxui/dom', 'dojo/dom', 'dojo/query', 'dojo/dom-prop', 'dojo/dom-geometry', 'dojo/dom-class', 'dojo/dom-style', 'dojo/dom-construct', 'dojo/_base/array', 'dojo/_base/lang', 'dojo/text',
+    'jquery', 'dojo/text!GridsterJS/widget/template/GridsterJS.html'
+], function (declare, _WidgetBase, _TemplatedMixin, dom, dojoDom, domQuery, domProp, domGeom, domClass, domStyle, domConstruct, dojoArray, lang, text, $, widgetTemplate) {
     'use strict';
 
-    // Required module list. Remove unnecessary modules, you can always get them back from the boilerplate.
-    require([
+    // Declare widget's prototype.
+    return declare('GridsterJS.widget.GridsterJS', [_WidgetBase, _TemplatedMixin], {
+        // _TemplatedMixin will create our dom node using this HTML template.
+        templateString: widgetTemplate,
 
-        'dojo/_base/declare', 'mxui/widget/_WidgetBase', 'dijit/_Widget', 'dijit/_TemplatedMixin',
-        'mxui/dom', 'dojo/dom', 'dojo/query', 'dojo/dom-prop', 'dojo/dom-geometry', 'dojo/dom-class', 'dojo/dom-style', 'dojo/dom-construct', 'dojo/_base/array', 'dojo/window', 'dojo/on', 'dojo/_base/lang', 'dojo/text',
-        'GridsterJS/widget/lib/jquery'
+        // Parameters configured in the Modeler.
+        //        mfToExecute: "",
+        //        messageString: "",
+        //        backgroundColor: "",
 
-    ], function (declare, _WidgetBase, _Widget, _Templated, domMx, dom, domQuery, domProp, domGeom, domClass, domStyle, domConstruct, dojoArray, win, on, lang, text, _jQuery) {
+        // Internal variables. Non-primitives created in the prototype are shared between all widget instances.
+        _gridster: null,
+        _positions: null,
+        _associated: false,
 
-        // Declare widget.
-        return declare('GridsterJS.widget.GridsterJS', [_WidgetBase, _Widget, _Templated, _jQuery], {
+        // dojo.declare.constructor is called to construct the widget instance. Implement to initialize non-primitive properties.
+        constructor: function () {},
 
-            /**
-             * Internal variables.
-             * ======================
-             */
-            _gridster: null,
-            _positions: null,
+        // dijit._WidgetBase.postCreate is called after constructing the widget. Implement to do extra setup work.
+        postCreate: function () {
+            console.log(this.id + '.postCreate');
 
-            // Template path
-            templatePath: require.toUrl('GridsterJS/widget/templates/GridsterJS.html'),
+            this._setupEvents();
+        },
 
-            /**
-             * Mendix Widget methods.
-             * ======================
-             */
+        // mxui.widget._WidgetBase.update is called when context is changed or initialized. Implement to re-render and / or fetch data.
+        update: function (obj, callback) {
+            console.log(this.id + '.update');
 
-            // DOJO.WidgetBase -> PostCreate is fired after the properties of the widget are set.
-            postCreate: function () {
+            if (!this._associated) {
+                this._setupGridster();
+                this._associated = true;
+            }
 
-                // postCreate
-                //console.log('GridsterJS - postCreate');
+            callback();
+        },
 
-                // Load CSS ... automaticly from ui directory
+        // mxui.widget._WidgetBase.uninitialize is called when the widget is destroyed. Implement to do special tear-down work.
+        uninitialize: function () {
+            // Clean up listeners, helper objects, etc. There is no need to remove listeners added with this.connect / this.subscribe / this.own.
+        },
 
-                // Setup widgets
-                this._setupWidget();
+        _setupEvents: function () {},
 
-                // Create childnodes
-                this._createChildNodes();
+        _setupGridster: function () {
+            // Need to set the variable to a local (closure) context for setTimeout,
+            // as setTimeout uses a different context for 'this'
+            var gridsterWidget = this,
+                options = {
+                    widget_base_dimensions: [this.dimensionwidth, this.dimensionheight],
+                    widget_margins: [this.marginhorizontal, this.marginvertical],
+                    widget_selector: 'div',
+                    draggable: {
+                        stop: function (e, ui) {
+                            gridsterWidget.setPositions(gridsterWidget);
+                        }
+                    }
+                };
 
-            },
+            if (!$('.' + gridsterWidget.mxtableclass)) {
+                console.log(this.id + '.setupGridster - cannot find the source table.');
+            } else {
+                gridsterWidget.getPositions(gridsterWidget);
 
-            // DOJO.WidgetBase -> Startup is fired after the properties of the widget are set.
-            startup: function () {
+                //setTimeout(function () {
+                console.log(this.id + '.setupGridster - settimeout');
 
-                // postCreate
-                //console.log('GridsterJS - startup');
+                var tr_count, col_count = 0,
+                    col_size = [],
+                    col_sizex = [],
+                    col_min = 0,
+                    col_max, index,
+                    newcells = [],
+                    source = $('.' + gridsterWidget.mxtableclass),
+                    target = gridsterWidget.domNode;
 
-            },
+                // Find the width of the columns
 
-            /**
-             * What to do when data is loaded?
-             */
+                // loop over the columns, '>' prevents overreach of the selector to other sub-tables
+                $(source).find(' > colgroup > col').each(function (index, value) {
+                    col_size[col_count] = $(value).width();
+                    //console.log(gridsterWidget.id + '.setupGridster - col orig ' + col_count + ' of size ' + col_size[col_count]);
+                    col_count++;
+                });
 
-            update: function (obj, callback) {
+                // Find the minimum width of the columns
+                col_min = Math.min.apply(null, col_size);
+                //console.log(gridsterWidget.id + '.setupGridster - col min ' + col_min);
 
-                // startup
-                //console.log('GridsterJS - update');
+                // Figure out the correct data-sizex to use for the relative size of the columns
+                $(col_size).each(function (index, value) {
+                    col_sizex[index] = Math.round(value / col_min);
+                    //console.log(gridsterWidget.id + '.setupGridster - col modified ' + index + ' of size ' + col_sizex[index]);
+                });
 
-                // Execute callback.
-                if (typeof callback !== 'undefined') {
-                    callback();
-                }
-            },
+                tr_count = 0;
+                //Loop over the rows, '>' prevents overreach of the selector to other sub-tables
+                var rows = $(source).find(' > tbody > tr');
+                $(rows).each(function (r_index, r_value) {
+                    tr_count++;
+                    col_count = 0;
 
-            /**
-             * Extra setup widget methods.
-             * ======================
-             */
-            _setupWidget: function () {
+                    //Loop over the columns, '>' prevents overreach of the selector to other sub-tables
+                    var cells = $(r_value).find(' > th , > td');
+                    $(cells).each(function (c_index, c_value) {
+                        col_count++;
 
-                // Setup jQuery
-                this.$ = _jQuery().jQuery();
-
-            },
-
-            // Create child nodes.
-            _createChildNodes: function () {
-
-                // Need to set the variable to a local (closure) context for setTimeout,
-                // as setTimeout uses a different context for 'this'
-                var gridsterWidget = this,
-                    $ = this.$,
-                    options = {
-                        widget_base_dimensions: [this.dimensionwidth, this.dimensionheight],
-                        widget_margins: [this.marginhorizontal, this.marginvertical],
-                        widget_selector: 'div',
-                        draggable: {
-                            stop: function (e, ui) {
-                                gridsterWidget.setPositions(gridsterWidget);
+                        var calc_col_size = col_sizex[col_count - 1],
+                            colspan_value,
+                            colspan_index,
+                            newcell;
+                        if ($(c_value).hasAttr('colspan')) {
+                            colspan_value = $(c_value).attr('colspan');
+                            for (colspan_index = 1; colspan_index < colspan_value; colspan_index++) {
+                                calc_col_size = calc_col_size + col_sizex[col_count - 1 + colspan_index];
                             }
                         }
-                    };
+                        
+                        newcell = $('<div></div>')
+                            .appendTo(target)
+                            .attr('data-row', tr_count)
+                            .attr('data-col', col_count)
+                            .attr('data-sizex', calc_col_size)
+                            .attr('data-sizey', 1)
+                            .addClass($(c_value).attr('class'));
+                        newcells.push(newcell);
 
-                if (!$('.' + gridsterWidget.mxtableclass)) {
+                        // Add all the child nodes to the new cell, which excludes the current cell (td)
+                        $(c_value.childNodes).appendTo(newcell);
+                    }); // cells loop
+                }); // row loop
 
-                    console.log('GridsterJS - cannot find the source table.');
+                // Add the saved layout, if set
+                if (gridsterWidget._positions && gridsterWidget._positions instanceof Array) {
+                    $(newcells).each(function (index, newcell) {
+                        newcell.attr('data-row', gridsterWidget._positions[index].row)
+                            .attr('data-col', gridsterWidget._positions[index].col)
+                            .attr('data-sizex', gridsterWidget._positions[index].size_x)
+                            .attr('data-sizey', gridsterWidget._positions[index].size_y);
+                    });
+                }
 
-                } else {
+                // Remove the source table
+                $(source).remove();
 
-                    gridsterWidget.getPositions(gridsterWidget);
+                if (gridsterWidget.autocalcmaxcolumns) {
+                    col_max = 0;
+                    for (index = 0; index < col_sizex.length; index++) {
+                        col_max += col_sizex[index];
+                    }
+                    gridsterWidget.objectmix(options, {
+                        max_cols: col_max
+                    });
+                }
 
-                    setTimeout(function () {
+                if (gridsterWidget.extraoptions !== '') {
+                    gridsterWidget.objectmix(options, dojo.fromJson(gridsterWidget.extraoptions));
+                }
 
-                        var tr_count, col_count = 0,
-                            col_size = [],
-                            col_sizex = [],
-                            col_min = 0,
-                            col_max, index,
-                            newcells = [],
-                            source = $('.' + gridsterWidget.mxtableclass),
-                            target = gridsterWidget.domNode;
+                // set up gridster for the node
+                gridsterWidget._gridster = $(target).gridster(options).data('gridster');
+                //}, 100); // setTimeout
+            }
+        },
 
-                        //console.log('GridsterJS - createChildNodes events');
+        setPositions: function (gridsterWidget) {
+            gridsterWidget._positions = gridsterWidget._gridster.serialize();
 
-                        // Find the width of the columns
+            mx.data.create({
+                entity: this.layoutEntity,
+                callback: function (obj) {
+                    obj.set(this.layoutJSON, JSON.stringify(gridsterWidget._positions));
+                    this._execMF(obj, this.savelayoutmf);
+                },
+                error: function (err) {
+                    logger.warn('Error creating object: ', err);
+                }
+            }, this);
+        },
 
-                        // loop over the columns, '>' prevents overreach of the selector to other sub-tables
-                        $(source).find(' > colgroup > col').each(function (index, value) {
-                            col_size[col_count] = $(value).width();
-                            //console.log('GridsterJS - col orig ' + col_count + ' of size ' + col_size[col_count]);
-                            col_count++;
-                        });
+        getPositions: function (gridsterWidget) {
+            var pos;
 
-                        // Find the minimum width of the columns
-                        col_min = Math.min.apply(null, col_size);
-                        //console.log('GridsterJS - col min ' + col_min);
+            gridsterWidget._execMF(null, gridsterWidget.loadlayoutmf, function (objs) {
+                if (objs && objs instanceof Array) {
+                    pos = objs[0].get(gridsterWidget.layoutJSON);
+                    if (pos && pos !== '') {
+                        gridsterWidget._positions = JSON.parse(pos);
+                    }
+                }
+            });
+        },
 
-                        // Figure out the correct data-sizex to use for the relative size of the columns
-                        $(col_size).each(function (index, value) {
-                            col_sizex[index] = Math.round(value / col_min);
-                            //console.log('GridsterJS - col modified ' + index + ' of size ' + col_sizex[index]);
-                        });
+        objectmix: function (base, toadd) {
+            var key, src, target, i;
 
-                        tr_count = 0;
-                        //Loop over the rows, '>' prevents overreach of the selector to other sub-tables
-                        $(source).find(' > tbody > tr').each(function (index, value) {
+            if (toadd) {
+                for (key in toadd) {
+                    if (key in base &&
+                        ((dojo.isArray(toadd[key]) !== dojo.isArray(base[key])) ||
+                            (dojo.isObject(toadd[key]) !== dojo.isObject(base[key])))) {
+                        throw "Cannot mix object properties, property '" + key + "' has different type in source and destination object";
+                    }
 
-                            tr_count++;
-                            col_count = 0;
-
-                            //Loop over the columns, '>' prevents overreach of the selector to other sub-tables
-                            $(value).find(' > th , > td').each(function (index, value) {
-
-                                col_count++;
-
-                                var calc_col_size = col_sizex[col_count - 1],
-                                    colspan_value,
-                                    colspan_index,
-                                    newcell;
-                                if ($(value).hasAttr('colspan')) {
-                                    colspan_value = $(value).attr('colspan');
-                                    for (colspan_index = 1; colspan_index < colspan_value; colspan_index++) {
-                                        calc_col_size = calc_col_size + col_sizex[col_count - 1 + colspan_index];
-                                    }
+                    if (key in base && dojo.isArray(toadd[key])) {
+                        //base is checked in the check above
+                        //mix array
+                        src = toadd[key];
+                        target = base[key];
+                        for (i = 0; i < src.length; i++) {
+                            if (i < target.length) {
+                                if (dojo.isObject(src[i]) && dojo.isObject(target[i])) {
+                                    this.objectmix(target[i], src[i]);
+                                } else {
+                                    target[i] = src[i];
                                 }
-                                newcell = $('<div></div>')
-                                    .appendTo(target)
-                                    .attr('data-row', tr_count)
-                                    .attr('data-col', col_count)
-                                    .attr('data-sizex', calc_col_size)
-                                    .attr('data-sizey', 1)
-                                    .addClass($(value).attr('class'));
-                                newcells.push(newcell);
-
-                                // Add all the child nodes to the new cell, which excludes the current cell (td)
-                                $(value.childNodes).appendTo(newcell);
-
-                            });
-
-                        });
-
-                        // Add the saved layout, if set
-                        if (gridsterWidget._positions && gridsterWidget._positions instanceof Array) {
-                            $(newcells).each(function (index, newcell) {
-                                newcell.attr('data-row', gridsterWidget._positions[index].row)
-                                    .attr('data-col', gridsterWidget._positions[index].col)
-                                    .attr('data-sizex', gridsterWidget._positions[index].size_x)
-                                    .attr('data-sizey', gridsterWidget._positions[index].size_y);
-
-                            });
-                        }
-
-                        // Remove the source table
-                        $(source).remove();
-
-                        if (gridsterWidget.autocalcmaxcolumns) {
-                            col_max = 0;
-                            for (index = 0; index < col_sizex.length; index++) {
-                                col_max += col_sizex[index];
+                            } else {
+                                target.push(src[i]);
                             }
-                            gridsterWidget.objectmix(options, {
-                                max_cols: col_max
-                            });
                         }
-
-                        if (gridsterWidget.extraoptions !== '')
-                            gridsterWidget.objectmix(options, dojo.fromJson(gridsterWidget.extraoptions));
-
-                        // set up gridster for the node
-                        gridsterWidget._gridster = $(target).gridster(options).data('gridster');
-
-                    }, 100);
+                    } else if (key in base && dojo.isObject(toadd[key])) {
+                        //mix object
+                        //base is checked in the check above
+                        this.objectmix(base[key], toadd[key]);
+                    } else {
+                        //mix primitive
+                        base[key] = toadd[key];
+                    }
                 }
-            },
+            }
+        },
 
-            setPositions: function (gridsterWidget) {
-
-                gridsterWidget._positions = gridsterWidget._gridster.serialize();
-
-                mx.data.create({
-                    entity: this.layoutEntity,
-                    callback: function (obj) {
-                        obj.set(this.layoutJSON, JSON.stringify(gridsterWidget._positions));
-                        this._execMF(obj, this.savelayoutmf);
+        _execMF: function (obj, mf, cb) {
+            if (mf) {
+                var params = {
+                    applyto: "selection",
+                    actionname: mf,
+                    guids: []
+                };
+                if (obj) {
+                    params.guids = [obj.getGuid()];
+                }
+                mx.data.action({
+                    params: params,
+                    callback: function (objs) {
+                        if (cb) {
+                            cb(objs);
+                        }
                     },
-                    error: function (err) {
-                        logger.warn('Error creating object: ', err);
+                    error: function (error) {
+                        if (cb) {
+                            cb();
+                        }
+                        logger.warn(error.description);
                     }
                 }, this);
 
-            },
-
-            getPositions: function (gridsterWidget) {
-
-                var pos;
-
-                gridsterWidget._execMF(null, gridsterWidget.loadlayoutmf, function (objs) {
-                    if (objs && objs instanceof Array) {
-                        pos = objs[0].get(gridsterWidget.layoutJSON);
-                        if (pos && pos !== '') {
-                            gridsterWidget._positions = JSON.parse(pos);
-                        }
-                    }
-                });
-
-            },
-
-            objectmix: function (base, toadd) {
-                if (toadd) {
-                    /*console.log("in");
-                    console.dir(base);
-                    console.log("add");
-                    console.dir(toadd);*/
-                    for (var key in toadd) {
-                        if ((key in base) &&
-                            ((dojo.isArray(toadd[key]) != dojo.isArray(base[key])) ||
-                                (dojo.isObject(toadd[key]) != dojo.isObject(base[key]))))
-                            throw "Cannot mix object properties, property '" + key + "' has different type in source and destination object";
-
-                        //mix array
-                        if (key in base && dojo.isArray(toadd[key])) { //base is checked in the check above
-                            var src = toadd[key];
-                            var target = base[key];
-                            for (var i = 0; i < src.length; i++) {
-                                if (i < target.length) {
-                                    if (dojo.isObject(src[i]) && dojo.isObject(target[i]))
-                                        this.objectmix(target[i], src[i]);
-                                    else
-                                        target[i] = src[i];
-                                } else
-                                    target.push(src[i]);
-                            }
-                        }
-                        //mix object
-                        else if (key in base && dojo.isObject(toadd[key])) //base is checked in the check above
-                            this.objectmix(base[key], toadd[key]);
-                        //mix primitive
-                        else
-                            base[key] = toadd[key];
-                    }
-                }
-                /*console.log("out");
-                console.dir(base);*/
-            },
-
-            _execMF: function (obj, mf, cb) {
-                if (mf) {
-                    var params = {
-                        applyto: "selection",
-                        actionname: mf,
-                        guids: []
-                    };
-                    if (obj) {
-                        params.guids = [obj.getGuid()];
-                    }
-                    mx.data.action({
-                        params: params,
-                        callback: function (objs) {
-                            if (cb) {
-                                cb(objs);
-                            }
-                        },
-                        error: function (error) {
-                            if (cb) {
-                                cb();
-                            }
-                            logger.warn(error.description);
-                        }
-                    }, this);
-
-                } else if (cb) {
-                    cb();
-                }
-            },
-
-        });
+            } else if (cb) {
+                cb();
+            }
+        }
     });
-
-}());
+});
