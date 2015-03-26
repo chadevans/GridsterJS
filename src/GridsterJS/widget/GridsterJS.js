@@ -6,9 +6,8 @@
 	========================
 
 	@file      : GridsterJS.js
-	@version   : 0.8
+	@version   : 1.0
 	@author    : Chad Evans
-	@date      : Fri, 30 Jan 2015 15:25:54 GMT
 	@copyright : Mendix Technology BV
 	@license   : Apache License, Version 2.0, January 2004
 
@@ -75,7 +74,6 @@ require({
                 col_sizex = [],
                 col_min = 0,
                 col_max, index,
-                newcells = [],
                 source = $('.' + this.mxtableclass),
                 target = this.domNode,
                 options = {
@@ -99,18 +97,15 @@ require({
                 // loop over the columns, '>' prevents overreach of the selector to other sub-tables
                 $(source).find(' > colgroup > col').each(function (index, value) {
                     col_size[col_count] = $(value).width();
-                    //console.log(this.id + '.setupGridster - col orig ' + col_count + ' of size ' + col_size[col_count]);
                     col_count++;
                 });
 
                 // Find the minimum width of the columns
                 col_min = Math.min.apply(null, col_size);
-                //console.log(this.id + '.setupGridster - col min ' + col_min);
 
                 // Figure out the correct data-sizex to use for the relative size of the columns
                 $(col_size).each(function (index, value) {
                     col_sizex[index] = Math.round(value / col_min);
-                    //console.log(this.id + '.setupGridster - col modified ' + index + ' of size ' + col_sizex[index]);
                 });
 
                 tr_count = 0;
@@ -142,7 +137,6 @@ require({
                             .attr('data-sizex', calc_col_size)
                             .attr('data-sizey', 1)
                             .addClass($(c_value).attr('class'));
-                        newcells.push(newcell);
 
                         // Add all the child nodes to the new cell, which excludes the current cell (td)
                         $(c_value.childNodes).appendTo(newcell);
@@ -174,18 +168,20 @@ require({
         },
 
         savePositions: function () {
-            var positions = this._gridster.serialize();
+            if (this.savelayoutmf && this.savelayoutmf !== '') {
+                var positions = this._gridster.serialize();
 
-            mx.data.create({
-                entity: this.layoutEntity,
-                callback: lang.hitch(this, function (obj) {
-                    obj.set(this.layoutJSON, JSON.stringify(positions));
-                    this._execMF(obj, this.savelayoutmf);
-                }),
-                error: function (err) {
-                    logger.warn('Error creating object: ', err);
-                }
-            }, this);
+                mx.data.create({
+                    entity: this.layoutEntity,
+                    callback: lang.hitch(this, function (obj) {
+                        obj.set(this.layoutJSON, JSON.stringify(positions));
+                        this._execMF(obj, this.savelayoutmf);
+                    }),
+                    error: function (err) {
+                        logger.warn('Error creating object: ', err);
+                    }
+                }, this);
+            }
         },
 
         loadPositions: function (cb) {

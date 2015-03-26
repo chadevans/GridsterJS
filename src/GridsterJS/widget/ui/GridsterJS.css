@@ -5,11 +5,11 @@
  * Description: Mendix widget for GridsterJS
  */
 
-.wgt-GridsterJS {
+.gridsterjs {
     position:relative;
 }
 
-.wgt-GridsterJS > * {
+.gridsterjs > * {
     margin: 0 auto;
     -webkit-transition: height .4s, width .4s;
     -moz-transition: height .4s, width .4s;
@@ -18,7 +18,7 @@
     transition: height .4s, width .4s;
 }
 
-.wgt-GridsterJS .gs-w {
+.gridsterjs .gs-w {
     z-index: 2;
     position: absolute;
 }
@@ -38,7 +38,7 @@
     transition: opacity .3s, left .3s, top .3s, width .3s, height .3s;
 }
 
-.wgt-GridsterJS .preview-holder {
+.gridsterjs .preview-holder {
     z-index: 1;
     position: absolute;
     background-color: #fff;
@@ -46,7 +46,7 @@
     opacity: 0.3;
 }
 
-.wgt-GridsterJS .player-revert {
+.gridsterjs .player-revert {
     z-index: 10!important;
     -webkit-transition: left .3s, top .3s!important;
     -moz-transition: left .3s, top .3s!important;
@@ -54,8 +54,8 @@
     transition:  left .3s, top .3s!important;
 }
 
-.wgt-GridsterJS .dragging,
-.wgt-GridsterJS .resizing {
+.gridsterjs .dragging,
+.gridsterjs .resizing {
     z-index: 10!important;
     -webkit-transition: all 0s !important;
     -moz-transition: all 0s !important;
@@ -117,14 +117,14 @@
     display: none !important;
 }
 
-.wgt-GridsterJS .preview-holder {
+.gridsterjs .preview-holder {
     border: none;
     background: grey;
 }
 
 
 /* Uncomment this if you set helper : "clone" in draggable options */
-/*.gridster .player {
+/*.gridsterjs .player {
   opacity:0;
 }
 */
