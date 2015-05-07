@@ -66,9 +66,7 @@
         <property key="extraoptions" type="string" defaultValue="" required="false" multiline="true">
             <caption>Extra options</caption>
             <category>Features</category>
-            <description>
-                In general, this property should be omitted. This property can be used to add additional options styling info (in JSON format) to the grid when constructing. For a full description of the available options, see www.gridster.net.
-            </description>
+            <description>In general, this property should be omitted. This property can be used to add additional options styling info (in JSON format) to the grid when constructing. For a full description of the available options, see www.gridster.net.</description>
         </property>
     </properties>
 </widget>

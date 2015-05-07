@@ -11,7 +11,7 @@ For more information on contributing to this repository visit [Contributing to a
 
 Use a standard Mendix Table container for a nice design-time experience, and at run-time, this widget will transform
 that Mendix Table container into a Gridster-enabled control. The widget will also automatically set the relative
-cell size (data-sizex) of the cell based on the table column sizes.
+cell size (data-sizex) of the cell based on the table column percentages. Fixed width is not supported.
  
 ## Configuration
 
@@ -20,6 +20,18 @@ To use the widget, do the following:
 1. Add GridsterJS widget to a page.
 2. Create a Mendix Table container.
 3. On the table, add the class "gridstertable", or as is customized in the GridsterJS widget.
+
+## Contexts for Usage
+
+When placing the widget, it is supported for use in the following contexts with exactly one matching table.
+
+1. Entire page
+2. Data View
+3. Template grid on each template
+4. List View on each list item
+5. Tab page
+
+The control limits the scope of the search for the table to the parent container, so that you can have multiple widgets on a page.
 
 ### Extra Options
 
