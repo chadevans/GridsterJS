@@ -53,11 +53,6 @@
             <category>Layout</category>
             <description>The vertical margin between the cells.</description>
         </property>
-        <property key="autocalcmaxcolumns" type="boolean" required="true" defaultValue="true">
-            <caption>Auto Calc Max Columns</caption>
-            <category>Layout</category>
-            <description>Indicates if the component will automatically limit the max columns based on the source Mendix table.</description>
-        </property>
         <property key="mxtableclass" type="string" required="true" defaultValue="gridstertable">
             <caption>Mendix Table class name</caption>
             <category>Features</category>

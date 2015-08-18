@@ -1,5 +1,5 @@
 /*jslint white:true, nomen: true, plusplus: true */
-/*global mx, define, require, browser, devel, console, document, jQuery */
+/*global mx, define, require, browser, devel, console, document, jQuery, window */
 /*mendix */
 /*
     GridsterJS
@@ -8,7 +8,7 @@
     @file      : Gridster.js
     @version   : 1.1
     @author    : Chad Evans
-    @date      : 07 May 2015
+    @date      : 18 August 2015
 	@copyright : 2015, Mendix Technology BV
 	@license   : Apache License, Version 2.0, January 2004
 
@@ -20,16 +20,16 @@
 // Required module list. Remove unnecessary modules, you can always get them back from the boilerplate.
 define([
     'dojo/_base/declare', 'mxui/widget/_WidgetBase', 'dijit/_TemplatedMixin',
-    'mxui/dom', 'dojo/dom', 'dojo/query', 'dojo/dom-construct', 'dojo/json', 'dojo/dom-class', 'dojo/dom-style',
+    'mxui/dom', 'dojo/dom', 'dojo/on', 'dojo/query', 'dojo/dom-construct', 'dojo/json', 'dojo/dom-class', 'dojo/dom-style',
     'dojo/dom-attr', 'dojo/_base/array', 'dojo/_base/lang', 'dojo/text', 'dojo/html', 'dojo/_base/event',
-    'GridsterJS/lib/jquery-1.11.2.min', 'dojo/text!GridsterJS/widget/template/GridsterJS.html'
+    'GridsterJS/lib/jquery-1.11.2.min', 'GridsterJS/lib/jquery.gridster', 'dojo/text!GridsterJS/widget/template/GridsterJS.html'
 ], function (declare, _WidgetBase, _TemplatedMixin,
-    dom, dojoDom, domQuery, domConstruct, JSON, domClass, domStyle,
+    dom, dojoDom, dojoOn, domQuery, domConstruct, JSON, domClass, domStyle,
     domAttr, dojoArray, lang, text, html, event,
-    _jQuery, widgetTemplate) {
+    _jQuery, _gridster, widgetTemplate) {
     'use strict';
 
-    var $ = jQuery.noConflict(true);
+    var $ = _jQuery.noConflict(true);
 
     // Declare widget's prototype.
     return declare('GridsterJS.widget.GridsterJS', [_WidgetBase, _TemplatedMixin], {
@@ -53,11 +53,11 @@ define([
         // Internal variables. Non-primitives created in the prototype are shared between all widget instances.
         _gridster: null,
         _associated: false,
+        _resizeHandle: null,
+        _gridster_options: null,
 
         // dojo.declare.constructor is called to construct the widget instance. Implement to initialize non-primitive properties.
-        constructor: function () {
-            this._handles = [];
-        },
+        constructor: function () {},
 
         // dijit._WidgetBase.postCreate is called after constructing the widget. Implement to do extra setup work.
         postCreate: function () {
@@ -83,11 +83,16 @@ define([
         disable: function () {},
 
         // mxui.widget._WidgetBase.resize is called when the page's layout is recalculated. Implement to do sizing calculations. Prefer using CSS instead.
-        resize: function (box) {},
+        resize: function (box) {
+            //this._resize_gridster();
+        },
 
         // mxui.widget._WidgetBase.uninitialize is called when the widget is destroyed. Implement to do special tear-down work.
         uninitialize: function () {
             // Clean up listeners, helper objects, etc. There is no need to remove listeners added with this.connect / this.subscribe / this.own.
+            if (this._resizeHandle) {
+                this._resizeHandle.remove();
+            }
         },
 
         // Attach events to HTML dom elements
@@ -99,6 +104,7 @@ define([
                 this._setupGridster();
                 this._associated = true;
             }
+            //this._resize_gridster();
         },
 
         _setupGridster: function () {
@@ -109,17 +115,16 @@ define([
                 col_min = 0,
                 col_max, index,
                 sources = domQuery('.' + this.mxtableclass, this.domNode.offsetParent),
-                target = this.domNode,
-                options = {
-                    widget_base_dimensions: [this.dimensionwidth, this.dimensionheight],
-                    widget_margins: [this.marginhorizontal, this.marginvertical],
-                    widget_selector: 'div',
-                    draggable: {
-                        stop: lang.hitch(this, function (e, ui) {
-                            this._savePositions();
-                        })
-                    }
-                };
+                target = this.domNode;
+            widget._gridster_options = {
+                widget_margins: [this.marginhorizonal, this.marginvertical],
+                widget_selector: 'div',
+                draggable: {
+                    stop: lang.hitch(this, function (e, ui) {
+                        this._savePositions();
+                    })
+                }
+            };
 
             sources.forEach(function (source, s_index) {
                 //console.log(this.id + '.setupGridster - loading');
@@ -180,23 +185,42 @@ define([
                 // Remove the source table
                 domConstruct.destroy(source);
 
-                if (widget.autocalcmaxcolumns) {
-                    col_max = 0;
-                    for (index = 0; index < col_sizex.length; index++) {
-                        col_max += col_sizex[index];
-                    }
-                    options.max_cols = col_max;
+                col_max = 0;
+                for (index = 0; index < col_sizex.length; index++) {
+                    col_max += col_sizex[index];
                 }
+                widget._gridster_options.max_cols = col_max;
+
+                widget._gridster_options.widget_base_dimensions = 
+                    [($(target).width() / widget._gridster_options.max_cols) - 40, 
+                        widget.dimensionheight];
 
                 if (widget.extraoptions !== '') {
                     lang.mixin(this._options, JSON.parse(widget.extraoptions));
                 }
 
                 widget._loadPositions(lang.hitch(widget, function () {
+                    // turn on responsive
+                    widget._gridster_options.autogenerate_stylesheet = true;
+                    widget._gridster_options.widget_base_dimensions[0] = 'auto';
+                    
                     // set up gridster for the node
-                    this._gridster = $(target).gridster(options).data('gridster');
+                    this._gridster = $(target).gridster(widget._gridster_options).data('gridster');
                 }));
             });
+        },
+
+        _resize_gridster: function () {
+            if (this._gridster) {
+                console.log(this.id + '.resize width ' + $(this.domNode).width());
+                var dimensionhoriz =
+                    ($(this.domNode).width() / this._gridster_options.max_cols) - 
+                    this.marginhorizonal * (this._gridster_options.max_cols - 1);
+
+                this._gridster.resize_widget_dimensions({
+                    widget_base_dimensions: [dimensionhoriz, this.dimensionheight]
+                });
+            }
         },
 
         _savePositions: function () {
